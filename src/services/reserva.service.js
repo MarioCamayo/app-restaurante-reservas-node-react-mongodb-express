@@ -1,6 +1,6 @@
 import Reserva from "../models/reserva.model.js";
 import { reservaSchema } from "../validations/reserva.validation.js";
-import { enviarWhatsApp, enviarSMS } from "./notificacion.service.js";
+import { enviarNotificacionReservaSMS } from "./notificacion.service.js";
 
 
 
@@ -22,7 +22,8 @@ export const crearReservaService = async (reservaData) => {
     // Validar los datos antes de guardarlos
     await reservaSchema.validateAsync(reservaData);
 
-    const { fecha, hora, mesa } = reservaData;
+
+    const { fecha, hora, mesa, telefono, nombreCliente, servicio  } = reservaData;
 
     //  Verificar si la mesa ya está reservada en la misma fecha y hora
     const reservaExistente = await Reserva.findOne({ fecha, hora, mesa });
@@ -42,7 +43,17 @@ export const crearReservaService = async (reservaData) => {
 
     //  Si pasa todas las validaciones, guardar la reserva
     const reserva = new Reserva(reservaData);
-    return await reserva.save();
+    await reserva.save();
+
+    // Enviar notificación SMS
+    // Convertir la fecha a un objeto Date antes de formatearla
+    const fechaObjeto = new Date(fecha); 
+    const mensaje = `Hola ${nombreCliente}, tu reserva para ${servicio} el ${fechaObjeto.toISOString().split("T")[0]} a las ${hora} ha sido confirmada.`;
+    await enviarNotificacionReservaSMS(telefono, mensaje);
+
+    return reserva;  // Retorna la reserva después del SMS
+
+
   } catch (error) {
     throw new Error("Error al crear la reserva: " + error.message);
   }
@@ -67,9 +78,9 @@ export const actualizarReservaService = async (id, data) => {
     }
 
     // Si la reserva se confirma, enviamos la notificación
-    if (nuevosDatos.estado === "confirmado") {
-      await enviarWhatsApp(reserva); // Para WhatsApp
-      await enviarSMS(reserva); // Para SMS (opcional)
+    if (data.estado === "confirmado") {
+      await enviarWhatsApp(reservaActualizada); // Para WhatsApp
+      await enviarSMS(reservaActualizada); // Para SMS (opcional)
     }
 
     return reservaActualizada;

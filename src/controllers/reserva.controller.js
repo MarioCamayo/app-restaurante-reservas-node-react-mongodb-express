@@ -1,6 +1,6 @@
 import { obtenerReservasService, crearReservaService, actualizarReservaService,
   eliminarReservaService, } from "../services/reserva.service.js";
-  import { validationResult } from "express-validator";
+import { validationResult } from "express-validator";
 
 
 
